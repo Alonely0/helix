@@ -1,0 +1,40 @@
+inherits = "gruvbox-material"
+
+"ui.background" = "white"
+"ui.virtual.indent-guide" = "#353535"
+"ui.bufferline" = { fg = "green" }
+"ui.bufferline.active" = { bg = "green", fg = "bg0" }
+"ui.virtual.jump-label" = { fg = "orange", modifiers = ["bold"], underline = { style = "line" } }
+
+"namespace" = "purple"
+"type" = "blue"
+"label" = "orange"
+"keyword.storage.modifier.ref" = "orange"
+"variable.other.member" = "white"
+"function.macro" = "aqua"
+"function.special" = "red"
+"string" = "yellow"
+"string.special.symbol" = "red"
+"string.special.url" = { fg = "yellow", underline = { style = "line" } }
+"constant.character.escape" = "green"
+"type.enum.variant" = "white"
+"special" = "orange"
+"constructor" = "purple"
+"attribute" = "purple"
+"punctuation.bracket" = "white"
+"punctuation.bracket.pipe" = "orange"
+# "punctuation.delimiter.path" = "orange"
+"rainbow" = ["red", "yellow", "green", "blue", "purple"]
+
+"ui.statusline.version-control" = { fg = "white", bg = "green"}
+"ui.statusline.file-name" = { fg = "blue", bg = "grey-300"}
+"ui.statusline.file-modification-indicator" = { fg = "red", bg = "grey-300", modifiers = ["bold"]}
+
+"ui.statusline.register" = { fg = "white", bg = "pink"}
+"ui.statusline.position" = { fg = "green", bg = "grey-300"}
+"ui.statusline.selections" = { fg = "black", bg = "grey-300"}
+"ui.statusline.primary-selection-length" = { fg = "cyan", bg = "grey-300"}
+"ui.statusline.file-encoding" = { fg = "white", bg = "cyan"}
+"ui.statusline.file-indent-style" = { fg = "white", bg = "light-blue"}
+"ui.statusline.file-line-ending" = { fg = "black", bg = "grey-300", modifiers = ["bold"]}
+"ui.statusline.position-percentage" = { fg = "white", bg = "light-blue"}
