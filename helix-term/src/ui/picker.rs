@@ -272,6 +272,7 @@ pub struct Picker<T: 'static + Send + Sync, D: 'static> {
     /// An event handler for syntax highlighting the currently previewed file.
     preview_highlight_handler: Sender<Arc<Path>>,
     dynamic_query_handler: Option<Sender<DynamicQueryChange>>,
+    title: Option<Spans<'static>>,
 }
 
 impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
@@ -397,6 +398,7 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
             file_fn: None,
             preview_highlight_handler: PreviewHighlightHandler::<T, D>::default().spawn(),
             dynamic_query_handler: None,
+            title: None,
         }
     }
 
@@ -413,6 +415,11 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
 
     pub fn truncate_start(mut self, truncate_start: bool) -> Self {
         self.truncate_start = truncate_start;
+        self
+    }
+
+    pub fn with_title(mut self, title: Spans<'static>) -> Self {
+        self.title = Some(title);
         self
     }
 
@@ -703,7 +710,9 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
         surface.clear_with(area, background);
 
         let border_type = BorderType::new(cx.editor.config().rounded_corners);
-        let block: Block<'_> = Block::bordered().border_type(border_type);
+        let block: Block<'_> = self.title.as_ref().map_or(Block::bordered(), |title| {
+            Block::bordered().title(title.clone())
+        }).border_type(border_type);
 
         // calculate the inner area inside the box
         let inner = block.inner(area);
@@ -1041,7 +1050,7 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
 impl<I: 'static + Send + Sync, D: 'static + Send + Sync> Component for Picker<I, D> {
     fn render(&mut self, area: Rect, surface: &mut Surface, cx: &mut Context) {
         // default render
-        // +---------+ +---------+
+        // +--title--+ +---------+
         // |prompt   | |preview  |
         // +---------+ |         |
         // |picker   | |         |
@@ -1049,7 +1058,7 @@ impl<I: 'static + Send + Sync, D: 'static + Send + Sync> Component for Picker<I,
         // +---------+ +---------+
         //
         // stack vertically
-        // +---------+
+        // +--title--+
         // |prompt   |
         // +---------+
         // |picker   |
