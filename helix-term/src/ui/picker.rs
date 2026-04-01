@@ -57,7 +57,7 @@ use self::handlers::{DynamicQueryChange, DynamicQueryHandler, PreviewHighlightHa
 pub const ID: &str = "picker";
 
 /// Narrowest preview width before switching to a stack layout instead of side-by-side
-pub const MIN_AREA_WIDTH_FOR_PREVIEW: u16 = 72;
+pub const MIN_AREA_WIDTH_FOR_PREVIEW: u16 = 60;
 /// Shortest preview height before preview is hidden entirely
 pub const MIN_AREA_HEIGHT_FOR_PREVIEW: u16 = 24;
 /// Biggest file size to preview in bytes
