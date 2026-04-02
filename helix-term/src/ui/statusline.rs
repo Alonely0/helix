@@ -52,6 +52,12 @@ pub struct RenderBuffer<'a> {
 }
 
 pub fn render(context: &mut RenderContext, viewport: Rect, surface: &mut Surface) {
+    let editor_bg = context
+        .editor
+        .theme
+        .try_get("ui.background")
+        .and_then(|c| c.bg)
+        .unwrap_or(helix_view::theme::Color::Reset);
     let base_style = if context.focused {
         context.editor.theme.get("ui.statusline")
     } else {
@@ -91,11 +97,18 @@ pub fn render(context: &mut RenderContext, viewport: Rect, surface: &mut Surface
         viewport.x
             + viewport
                 .width
-                .saturating_sub(context.parts.right.width() as u16),
+                .saturating_sub(context.parts.right.width() as u16)
+            - 1,
         viewport.y,
         &context.parts.right,
         context.parts.right.width() as u16,
     );
+    let end = Style {
+        bg: Some(editor_bg),
+        fg: base_style.bg,
+        ..base_style
+    };
+    surface.set_stringn(surface.area.right() - 1, viewport.y, "", 1, end);
 
     // Center of the status line.
 
@@ -173,12 +186,6 @@ where
         Mode::Select => &modenames.select,
         Mode::Normal => &modenames.normal,
     };
-    let content = if visible {
-        format!(" {mode_str} ")
-    } else {
-        // If not focused, explicitly leave an empty space instead of returning None.
-        " ".repeat(mode_str.width() + 2)
-    };
     let style = if visible && config.color_modes {
         match context.editor.mode() {
             Mode::Insert => context.editor.theme.get("ui.statusline.insert"),
@@ -188,7 +195,32 @@ where
     } else {
         Style::default()
     };
-    write(context, Span::styled(content, style));
+    if visible {
+        let editor_bg = context
+            .editor
+            .theme
+            .try_get("ui.background")
+            .and_then(|c| c.bg)
+            .unwrap_or(helix_view::theme::Color::Reset);
+        let line_bg = if context.focused {
+            context.editor.theme.try_get("ui.statusline")
+        } else {
+            context.editor.theme.try_get("ui.statusline.inactive")
+        }
+        .and_then(|c| c.bg)
+        .unwrap_or(editor_bg);
+        let style_inv = Style {
+            fg: style.bg,
+            ..style
+        };
+
+        write(context, Span::styled("", style_inv.bg(editor_bg)));
+        write(context, Span::styled(mode_str.to_string(), style));
+        write(context, Span::styled("", style_inv.bg(line_bg)));
+    } else {
+        // If not focused, explicitly leave an empty space instead of returning None.
+        write(context, Span::styled(" ".repeat(mode_str.width() + 2), style));
+    };
 }
 
 // TODO think about handling multiple language servers

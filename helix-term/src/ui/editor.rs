@@ -992,29 +992,33 @@ impl EditorView {
     /// Render bufferline at the top
     pub fn render_bufferline(&mut self, editor: &Editor, viewport: Rect, surface: &mut Surface) {
         let scratch = PathBuf::from(SCRATCH_BUFFER_NAME); // default filename to use for scratch buffer
-        surface.clear_with(
-            viewport,
-            editor
+        let right = surface.area.right();
+        let mut bg_style = editor
                 .theme
                 .try_get("ui.bufferline.background")
-                .unwrap_or_else(|| editor.theme.get("ui.statusline")),
-        );
-
+                .unwrap_or_else(|| editor.theme.get("ui.statusline"));
         let bufferline_active = editor
             .theme
             .try_get("ui.bufferline.active")
             .unwrap_or_else(|| editor.theme.get("ui.statusline.active"));
-
         let bufferline_inactive = editor
             .theme
             .try_get("ui.bufferline")
             .unwrap_or_else(|| editor.theme.get("ui.statusline.inactive"));
+        let bg = editor.theme.try_get("ui.background").and_then(|c| c.bg).unwrap_or(Color::Reset);
+        let mod_fg = editor.theme.try_get("ui.bufferline.unsaved").and_then(|c| c.fg);
+
+        surface.clear_with(viewport, bg_style);
+
+        bg_style.fg = bufferline_inactive.bg;
+        surface.set_stringn(right - 1, viewport.y, "", right as usize, bg_style.bg(bg));
 
         let mut x = viewport.x;
         let current_doc = view!(editor).doc;
 
         self.bufferline_info.clear();
 
+        let mut first = true;
         for doc in editor.documents() {
             let fname = doc
                 .path()
@@ -1024,7 +1028,9 @@ impl EditorView {
                 .to_str()
                 .unwrap_or_default();
 
-            let style = if current_doc == doc.id() {
+            let active = current_doc == doc.id();
+
+            let style = if active {
                 bufferline_active
             } else {
                 bufferline_inactive
@@ -1034,41 +1040,59 @@ impl EditorView {
 
             let lang = doc.language_name().unwrap_or(DEFAULT_LANGUAGE_NAME);
 
+            let round = Style {
+                fg: style.bg,
+                bg: bufferline_inactive.bg,
+                ..style
+            };
+
+            let used_width = viewport.x.saturating_sub(x);
+            let mut rem_width = surface.area.width.saturating_sub(used_width);
+            let start_x = x;
+
+                x = surface
+                    .set_stringn(
+                        x,
+                        viewport.y,
+                        "",
+                        rem_width as usize,
+                        if first { round.bg(bg) } else { round },
+                    )
+                    .0;
+            rem_width = rem_width.saturating_sub(1);
+
             if let Some(icon) = icons
                 .fs()
                 .from_optional_path_or_lang(doc.path().map(|path| path.as_path()), lang)
             {
-                let used_width = viewport.x.saturating_sub(x);
-                let rem_width = surface.area.width.saturating_sub(used_width);
-
-                let style = icon.color().map_or(style, |color| style.fg(color));
-
+                let mut icon_style = icon.color().map_or(style, |color| style.fg(color));
                 x = surface
-                    .set_stringn(x, viewport.y, format!(" {icon}"), rem_width as usize, style)
+                    .set_stringn(x, viewport.y, format!("{icon} "), rem_width as usize, icon_style)
                     .0;
 
-                if x >= surface.area.right() {
+                if x >= right {
                     break;
                 }
             }
 
-            let text = format!(" {} {}", fname, if doc.is_modified() { "[+] " } else { "" });
-
-            let used_width = viewport.x.saturating_sub(x);
-            let rem_width = surface.area.width.saturating_sub(used_width);
-
-            let start_x = x;
-            x = surface
-                .set_stringn(x, viewport.y, text, rem_width as usize, style)
-                .0;
-            let end_x = x.min(surface.area.right());
+            x = surface.set_stringn(x, viewport.y, fname, rem_width as usize, style).0;
+            rem_width = rem_width.saturating_sub(x);
+            if doc.is_modified() {
+                let mut style = style;
+                style.fg = mod_fg.or(style.fg);
+                x = surface.set_stringn(x, viewport.y, "  ", rem_width as usize, style).0;
+                rem_width = rem_width.saturating_sub(3);
+            }
+            x = surface.set_stringn(x, viewport.y, "", rem_width as usize, round).0;
+            let end_x = x.min(right);
 
             self.bufferline_info
                 .add_buffer_info(doc.id(), start_x..end_x);
 
-            if x >= surface.area.right() {
+            if x >= right {
                 break;
             }
+            first = false;
         }
     }
 
