@@ -1066,6 +1066,30 @@ impl EditorView {
                 .from_optional_path_or_lang(doc.path().map(|path| path.as_path()), lang)
             {
                 let mut icon_style = icon.color().map_or(style, |color| style.fg(color));
+                if let (Some(Color::Rgb(r1, g1, b1)), Some(Color::Rgb(r2, g2, b2))) =
+                    (style.bg, icon_style.fg)
+                {
+                    let (bg, icon_fg) = ((r1, g1, b1), (r2, g2, b2));
+                    let lin = |c| {
+                        let c = c as f32 / 255.;
+                        if c <= 0.04045 { c / 12.92 } else { ((c + 0.055) / 1.055).powf(2.4) }
+                    };
+                    let lum = |(r, g, b)| 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+                    let contrast = |a, b| {
+                        let (la, lb) = (lum(a), lum(b));
+                        let (la, lb) = if la > lb { (la, lb) } else { (lb, la) };
+                        (la + 0.05) / (lb + 0.05)
+                    };
+
+                    let con_icon = contrast(bg, icon_fg);
+                    if con_icon < 2.5 {
+                        if let Some(Color::Rgb(r3, g3, b3)) = style.fg {
+                            if con_icon * 1.10 < contrast(bg, (r3, g3, b3)) {
+                                icon_style.fg = style.fg;
+                            }
+                        }
+                    }
+                }
                 x = surface
                     .set_stringn(x, viewport.y, format!("{icon} "), rem_width as usize, icon_style)
                     .0;
